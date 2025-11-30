@@ -9,6 +9,7 @@ from app.schemas.dogs import DogCreate, DogUpdate, DogResponse, DogProfileDetail
 import shutil
 import os
 from pathlib import Path
+from sqlalchemy.orm import selectinload
 
 router = APIRouter()
 
@@ -20,7 +21,11 @@ async def read_dogs(
     limit: int = 100
 ):
     result = await db.execute(
-        select(Dog).where(Dog.owner_user_id == current_user.id).offset(skip).limit(limit)
+        select(Dog)
+        .where(Dog.owner_user_id == current_user.id)
+        .options(selectinload(Dog.details))
+        .offset(skip)
+        .limit(limit)
     )
     return result.scalars().all()
 
@@ -40,6 +45,12 @@ async def create_dog(
     db.add(details)
     await db.commit()
     
+    # Reload dog with details for response
+    result = await db.execute(
+        select(Dog).where(Dog.id == dog.id).options(selectinload(Dog.details))
+    )
+    dog = result.scalars().first()
+    
     return dog
 
 @router.get("/{dog_id}", response_model=DogResponse)
@@ -49,7 +60,9 @@ async def read_dog(
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
     result = await db.execute(
-        select(Dog).where(Dog.id == dog_id, Dog.owner_user_id == current_user.id)
+        select(Dog)
+        .where(Dog.id == dog_id, Dog.owner_user_id == current_user.id)
+        .options(selectinload(Dog.details))
     )
     dog = result.scalars().first()
     if not dog:
@@ -64,7 +77,9 @@ async def update_dog(
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
     result = await db.execute(
-        select(Dog).where(Dog.id == dog_id, Dog.owner_user_id == current_user.id)
+        select(Dog)
+        .where(Dog.id == dog_id, Dog.owner_user_id == current_user.id)
+        .options(selectinload(Dog.details))
     )
     dog = result.scalars().first()
     if not dog:
@@ -76,6 +91,12 @@ async def update_dog(
     
     await db.commit()
     await db.refresh(dog)
+    
+    # Reload to be safe with async attributes
+    result = await db.execute(
+        select(Dog).where(Dog.id == dog.id).options(selectinload(Dog.details))
+    )
+    dog = result.scalars().first()
     return dog
 
 @router.delete("/{dog_id}")
