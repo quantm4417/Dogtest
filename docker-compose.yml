@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=dogapp
+      - POSTGRES_PASSWORD=dogapp_password
+      - POSTGRES_DB=dogapp_db
+    ports:
+      - "5432:5432"
+    networks:
+      - dog-net
+
+  backend:
+    build: ./backend
+    restart: always
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://dogapp:dogapp_password@db:5432/dogapp_db
+      - SECRET_KEY=supersecretkeychangedinproduction
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    depends_on:
+      - db
+    networks:
+      - dog-net
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - dog-net
+
+volumes:
+  postgres_data:
+  media_data:
+
+networks:
+  dog-net:
+    driver: bridge
+
