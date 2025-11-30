@@ -22,7 +22,7 @@ services:
       - ./backend:/app
       - media_data:/app/media
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://dogapp:dogapp_password@db:5432/dogapp_db
       - SECRET_KEY=supersecretkeychangedinproduction
@@ -41,7 +41,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8001
     depends_on:
       - backend
     networks:
