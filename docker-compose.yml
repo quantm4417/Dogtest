@@ -19,7 +19,7 @@ services:
     build: ./backend
     restart: always
     volumes:
-      - ./backend:/app
+      # - ./backend:/app
       - media_data:/app/media
     ports:
       - "8001:8000"
@@ -36,7 +36,7 @@ services:
   frontend:
     build: ./frontend
     volumes:
-      - ./frontend:/app
+      # - ./frontend:/app
       - /app/node_modules
     ports:
       - "3000:3000"
